@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="io.sparqlar.ui.QueryList">
+  <grid id="27dc6" binding="queryListPanel" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="1000" height="400"/>
+    </constraints>
+    <properties>
+      <minimumSize width="1000" height="300"/>
+      <preferredSize width="1000" height="300"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <scrollpane id="32abd">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="1.0"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="befe2" class="javax.swing.JList" binding="queryList">
+            <constraints/>
+            <properties/>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="e2fbf" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="Query Cost:"/>
+        </properties>
+      </component>
+      <component id="99187" class="javax.swing.JLabel" binding="queryCost">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value=""/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

@@ -1,0 +1,273 @@
+
+/*
+ * Copyright © 2002 Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
+ * California 95054, U.S.A. All rights reserved.  Sun Microsystems, Inc. has
+ * intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation,
+ * these intellectual property rights may include one or more of the U.S.
+ * patents listed at http://www.sun.com/patents and one or more additional
+ * patents or pending patent applications in the U.S. and in other countries.
+ * U.S. Government Rights - Commercial software. Government users are subject
+ * to the Sun Microsystems, Inc. standard license agreement and applicable
+ * provisions of the FAR and its supplements.  Use is subject to license terms.
+ * Sun,  Sun Microsystems,  the Sun logo and  Java are trademarks or registered
+ * trademarks of Sun Microsystems, Inc. in the U.S. and other countries.  This
+ * product is covered and controlled by U.S. Export Control laws and may be
+ * subject to the export or import laws in other countries.  Nuclear, missile,
+ * chemical biological weapons or nuclear maritime end uses or end users,
+ * whether direct or indirect, are strictly prohibited.  Export or reexport
+ * to countries subject to U.S. embargo or to entities identified on U.S.
+ * export exclusion lists, including, but not limited to, the denied persons
+ * and specially designated nationals lists is strictly prohibited.
+ */
+
+
+
+    
+options {
+  LOOKAHEAD = 1;
+  CHOICE_AMBIGUITY_CHECK = 1;
+  OTHER_AMBIGUITY_CHECK = 1;
+  STATIC = false;
+  DEBUG_PARSER = false;
+  DEBUG_LOOKAHEAD = false;
+  DEBUG_TOKEN_MANAGER = false;
+  ERROR_REPORTING = true;
+  JAVA_UNICODE_ESCAPE = false;
+  UNICODE_INPUT = false;
+  IGNORE_CASE = true;
+  USER_TOKEN_MANAGER = false;
+  USER_CHAR_STREAM = false;
+  BUILD_PARSER = true;
+  BUILD_TOKEN_MANAGER = true;
+  SANITY_CHECK = true;
+  FORCE_LA_CHECK = false;
+}
+
+PARSER_BEGIN(SparqlParser)
+package io.sparqlar.parser;
+import java.io.*;
+import java.util.*;
+import io.sparqlar.sparqlardc.*;
+import io.sparqlar.sparqlardc.propertypath.*;
+import io.sparqlar.sparqlardc.querypatterns.*;
+import io.sparqlar.sparqlardc.terms.*;
+import io.sparqlar.sparqlardc.triplepatterns.*;
+
+public class SparqlParser {
+    HashMap<String,SimpleURI> prefixes;
+    public static SPARQL<?> parse(String arg) throws ParseException {
+        SparqlParser parser = new SparqlParser(new StringReader(arg));
+        return parser.input();
+    }
+}
+
+
+PARSER_END(SparqlParser)
+
+SPARQL<?> input():
+{
+    List<Variable> vars=new ArrayList<Variable>();
+    QueryPattern qp;
+    boolean distinct=false;
+    int limit=0;
+    String filter=null;
+    Token t=null;
+    Token f=null;
+    boolean ask=false;
+}
+{
+    (" "|"\n"|"\t")* (prefixes=prefixes())? (("ASK" {ask=true;}) | ("SELECT" (" "|"\n"|"\t")* ("DISTINCT" (" "|"\n"|"\t")* {distinct=true;})?  vars= variables() "WHERE"))
+    (" "|"\n"|"\t")* "{"  qp=queryPattern()  ( f=<COND: "." (" "|"\n"|"\t")* "FILTER" (~["}"])* >)? "}" ("LIMIT " (" "|"\n"|"\t")* t=<N: (["0"-"9"])+> )?
+    
+    {
+    if(!ask && vars.isEmpty()){
+        vars.addAll(qp.getVariableSet());
+    }
+    if(t!=null)limit=Integer.parseInt(t.toString());
+    if(f!=null)filter=f.toString();
+    return new SPARQL<QueryPattern>(vars,qp,prefixes,distinct,limit,filter);
+    }
+}
+
+List<Variable> variables() :
+{
+    List<Variable> set = new ArrayList<Variable>();
+    Variable v;
+}
+{
+    (("*" (" "|"\n"|"\t")* ) | (( v=var() {set.add(v);} (" "|"\n"|"\t")*)  ( v=var() {set.add(v);} (" "|"\n"|"\t")* )*)) {return set;}
+}
+
+QueryPattern queryPattern():
+{
+    QueryPattern qp;
+    HashSet<QueryPattern> set = new HashSet<QueryPattern>();
+    
+}
+{
+         (" "|"\n"|"\t")* (qp=unionQueryPattern() | qp=triplePattern()) {set.add(qp);}  
+    ("." (" "|"\n"|"\t")* (qp=unionQueryPattern() | qp=triplePattern()) {set.add(qp);} )*     
+    
+{
+
+        if(set.size()==1) return qp;
+        return new JoinQueryPattern<QueryPattern>(set);
+    }
+}
+
+QueryPattern unionQueryPattern():
+{   
+    QueryPattern qp;
+    HashSet<QueryPattern> set = new HashSet<QueryPattern>();
+}
+{
+     "{" qp=queryPattern() {set.add(qp);} "}" (" "|"\n"|"\t")* "UNION" (" "|"\n"|"\t")* "{"  qp=queryPattern() {set.add(qp);} "}" (" "|"\n"|"\t")* 
+                                                              ("UNION" (" "|"\n"|"\t")* "{"  qp=queryPattern() {set.add(qp);} "}" (" "|"\n"|"\t")* )*
+    {return new UnionQueryPattern<QueryPattern>(set);}
+}
+
+TriplePattern triplePattern():
+{
+    Subject s;
+    Predicate p;
+    Objec o;
+}
+{
+    ((s=subject() (" "|"\n"|"\t")* p=predicate() o=object() (" "|"\n"|"\t")* {return new TriplePattern(s,p,o);})
+    | ("APPROX" (" "|"\n"|"\t")* "(" s=subject() (" "|"\n"|"\t")* p=propertyPath() o=object() (" "|"\n"|"\t")* ")" (" "|"\n"|"\t")* {return new Approx(s,(PropertyPath)p,o);})
+    | ("RELAX" (" "|"\n"|"\t")* "(" s=subject() (" "|"\n"|"\t")* p=propertyPath() o=object() (" "|"\n"|"\t")* ")" (" "|"\n"|"\t")* {return new Relax(s,(PropertyPath)p,o);})
+    | ("FLEX" (" "|"\n"|"\t")* "(" s=subject() (" "|"\n"|"\t")* p=propertyPath() o=object() (" "|"\n"|"\t")* ")" (" "|"\n"|"\t")* {return new Flex(s,(PropertyPath)p,o);})
+    | ("OPTIONAL" (" "|"\n"|"\t")* "{" s=subject() (" "|"\n"|"\t")* p=propertyPath() o=object() (" "|"\n"|"\t")* "}" (" "|"\n"|"\t")* {return new OptionalPattern(s,(PropertyPath)p,o);})
+    )
+    
+}
+
+Subject subject():
+{
+    Subject s;
+}
+{
+    (s=var() | s=uri()) {return s;}
+}
+
+Predicate predicate():
+{
+    Predicate p;
+}
+{
+    ((p=var() (" "|"\n"|"\t")*) | p=propertyPath()) {return p;}
+}
+
+Objec object():
+{
+    Objec o;
+}
+{
+    (o=var() | o=uri() | o=literal()) {return o;}
+}
+
+PropertyPath propertyPath():
+{
+    PropertyPath pp;
+}
+{
+    (pp=uri() | ("(" (" "|"\n"|"\t")* pp=propertyPath()
+    {if(pp instanceof Alternation ){
+    ((Alternation) pp).setToIsGrouping(); }}
+     ")")) (" "|"\n"|"\t")*
+    
+    (
+        (pp = closure(pp) (" "|"\n"|"\t")* ((pp=concatenation(pp)) | (pp=alternation(pp)))?) | 
+        (pp = concatenation(pp)) | 
+        (pp = alternation(pp))
+    )? 
+    
+    {
+    return pp;
+    }
+}
+
+Closure closure(PropertyPath pp):
+{
+}
+{
+    "*"  {return new Closure(pp); }
+}
+
+PropertyPath concatenation(PropertyPath pp1):
+{
+    PropertyPath pp2;
+}
+{
+    "/" (" "|"\n"|"\t")* pp2=propertyPath() 
+        {
+            if(pp2 instanceof Alternation && !((Alternation) pp2).isGrouping()) return Alternation.buildAlternationForParser(new Concatenation(pp1,((Alternation)pp2).getFirst()),((Alternation)pp2).getRest());
+            else return new Concatenation(pp1,pp2);
+        }
+}
+
+Alternation alternation(PropertyPath pp1):
+{
+    PropertyPath pp2;
+}
+{
+    "|" (" "|"\n"|"\t")* pp2=propertyPath() {return Alternation.buildAlternationForParser(pp1,pp2);}
+}
+
+HashMap<String,SimpleURI> prefixes():
+{
+    HashMap<String,SimpleURI> set = new HashMap<String,SimpleURI>();
+    Token t1;
+    SimpleURI t2;
+}
+{
+    "PREFIX" (" "|"\n"|"\t")* t1=<AN> (" "|"\n"|"\t")* ":" (" "|"\n"|"\t")*  t2=simpleuri()  {set.put(t1.toString(),t2);} (" "|"\n"|"\t")* 
+  ( "PREFIX" (" "|"\n"|"\t")* t1=<AN> (" "|"\n"|"\t")* ":" (" "|"\n"|"\t")*  t2=simpleuri()
+               {if(!set.containsKey(t1.toString()))set.put(t1.toString(),t2);
+                else throw new ParseException("Encountered \"" +t1.toString() + "\" prefix twice.");} (" "|"\n"|"\t")*)* {return set;}
+}
+
+Variable var():
+{
+    Token t;
+}
+{
+     "?" t=<AN: (["a"-"z","A"-"Z","0"-"9"])+> {return new Variable(t.toString());}
+}
+
+URI uri(): 
+{
+    URI ret;
+}
+{
+     (ret=simpleuri()| ret= prefixeduri()) {return ret;}
+}
+
+SimpleURI simpleuri():
+{
+Token t;
+}
+{
+(  t=<URI: "<"  (~[" ","{","}","\"","<",">"])+ ">">)  {return new SimpleURI(t.toString().substring(1,t.toString().length()-1));}
+}
+
+PrefixedURI prefixeduri():
+{
+    Token pref;
+    Token t;
+}
+{
+    pref=<AN> ":" t=<AN> 
+                    {if(prefixes.containsKey(pref.toString()))return new PrefixedURI(pref.toString(),t.toString(),prefixes.get(pref.toString()).getUri());
+                     else throw new ParseException("Prefix \"" + pref.toString() + "\" does not exist.");}
+}
+
+Literal literal():
+{
+    Token t;
+}
+{
+    t=<LITERAL: "\""  (~["\""])* "\"" >  {return new Literal(t.toString());}
+}
+
