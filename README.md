@@ -28,3 +28,7 @@ SPARQLAR/src/main/java/io/sparqlar/ui/ This folder contains the UI code.
 
 SPARQLAR/src/main/java/io/sparqlar/BuildSummary.java This file contains the algorithm that produces the summary from a database in TDB format. 
 The code is a standalone project that is should be executed independently and is not parametrised (the folder needs to be changed directly from the code and executed).
+
+## Editing and debugging
+For editing and debuggning I would suggest to use "Intellij Idea" as the UI is implemented using the wysiwyg interface.
+
