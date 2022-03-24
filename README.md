@@ -4,13 +4,9 @@ SPARQLAR interpreter and evaluator with optimisations systems.
 
 ## Compiling and Running
 The code has to be compiled using MAVEN command:
-'''
-mvn clean install
-'''
+```mvn clean install```
 This will generate a JAR file that can be executed using:
-'''
-java -jar SPARQLAR-1.0-SNAPSHOT.jar
-'''
+```java -jar SPARQLAR-1.0-SNAPSHOT.jar```
 
 ## Contents
 pom.xml for managing the libraries and building the project.
