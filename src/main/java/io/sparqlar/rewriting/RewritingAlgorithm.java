@@ -133,8 +133,10 @@ public class RewritingAlgorithm {
                         logger.info("Removed query:");
                         logger.info(queryCostContained.getQuery().toString());
                         queryCostsSimplified.remove(j);
-                        i--;
                         j--;
+                        if (j < i) {
+                            i--;
+                        }
                     }
                 }
             }
@@ -151,9 +153,9 @@ public class RewritingAlgorithm {
             Graph intersect = createGraph.intersect(schema);
             if (intersect.isEmpty()) {
                 return null;
-            } else if(intersect.size()<=50000) {
+            } else if (intersect.size() <= 50000) {
                 queryRet = queryRet.replaceTriplePattern(t, new TriplePattern(t.getS(), intersect.getPropertyPath(), t.getO()));
-            } else{
+            } else {
                 System.out.println(t);
             }
         }
