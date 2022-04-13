@@ -122,7 +122,6 @@ public class RewritingAlgorithm {
             }
             queryCostsSimplified.add(new QueryCost<>(toAdd, query.getCost()));
         }
-        List<QueryCost<CQSPARQL>> queryCostsReduced = new ArrayList<>(queryCostsSimplified);
         for (int i = 0; i < queryCostsSimplified.size(); i++) {
             for (int j = 0; j < queryCostsSimplified.size(); j++) {
                 if (i != j) {
@@ -133,12 +132,14 @@ public class RewritingAlgorithm {
                         logger.info(queryCostContainer.getQuery().toString());
                         logger.info("Removed query:");
                         logger.info(queryCostContained.getQuery().toString());
-                        queryCostsReduced.remove(queryCostContained);
+                        queryCostsSimplified.remove(j);
+                        i--;
+                        j--;
                     }
                 }
             }
         }
-        return queryCostsReduced;
+        return queryCostsSimplified;
     }
 
 
